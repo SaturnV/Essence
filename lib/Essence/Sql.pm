@@ -7,7 +7,7 @@ package Essence::Sql;
 
 use Essence::Strict;
 
-use base 'Essence::Logger::Mixin';
+use parent 'Essence::Logger::Mixin';
 
 use DBI;
 use Carp;

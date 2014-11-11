@@ -4,7 +4,7 @@ package Essence::Logger::Id;
 
 use Essence::Strict;
 
-use base 'Essence::Logger';
+use parent 'Essence::Logger';
 
 # There is no Essence::Logger->new()
 sub new

@@ -5,7 +5,7 @@ package Essence::Sql::AsyncMysql;
 
 use Essence::Strict;
 
-use base 'Essence::Sql';
+use parent 'Essence::Sql';
 
 use AnyEvent;
 
