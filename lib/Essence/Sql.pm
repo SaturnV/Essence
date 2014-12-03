@@ -171,6 +171,45 @@ sub db
   return ref($self) ? $self->{'db'} : $DB;
 }
 
+# ==== Table ==================================================================
+
+sub _table_
+{
+  my ($self, $op, $db, $table, $alias) = @_;
+
+  $self->Croak("$op: No table is table spec")
+    unless (defined($table) && ($table ne ''));
+
+  $db = defined($db) ? "`$db`." : '';
+  $alias = defined($alias) ? " AS `$alias`" : '';
+
+  return "$db`$table`$alias";
+}
+
+sub _table
+{
+  my ($self, $op, $tbl_spec) = @_;
+
+  return $self->_table_($op, undef, $tbl_spec, undef)
+    unless ref($tbl_spec);
+  return $self->_table_($op,
+      $tbl_spec->{'db'},
+      $tbl_spec->{'table'},
+      $tbl_spec->{'alias'})
+    if (ref($tbl_spec) eq 'HASH');
+
+  $self->Croak("$op: Bad table spec")
+    unless ((ref($tbl_spec) eq 'ARRAY') &&
+            ($#{$tbl_spec} > 0) &&
+            ($#{$tbl_spec} <= 2));
+
+  my ($db, $table, $alias) =
+      $#{$tbl_spec} ?
+          @{$tbl_spec} :
+          (undef, $tbl_spec->[0], undef);
+  return $self->_table_($op, $db, $table, $alias);
+}
+
 # ==== WHERE ==================================================================
 
 sub _join_where
@@ -349,8 +388,7 @@ sub insert
   my ($self, $table, $data) = @_;
   my (@names, @values);
 
-  $self->Croak("insert: table is ref")
-    if ref($table);
+  my $sql_table = $self->_table('insert', $table);
 
   if (ref($data) eq 'HASH')
   {
@@ -372,7 +410,7 @@ sub insert
 
   my $names = join(', ', map { "`$_`" } @names);
   my $qs = join(', ', ('?') x scalar(@values));
-  return ("INSERT INTO `$table` ($names) VALUES ($qs)", @values);
+  return ("INSERT INTO $sql_table ($names) VALUES ($qs)", @values);
 }
 
 # ==== SELECT =================================================================
@@ -393,8 +431,7 @@ sub select
   my ($sql, @params);
 
   # TODO joins?
-  $self->Croak("select: table is ref")
-    if ref($table);
+  my $sql_table = $self->_table('select', $table);
 
   my $f_sql;
   if (ref($fields))
@@ -460,7 +497,7 @@ sub select
     }
   }
 
-  $sql = "SELECT $f_sql FROM `$table`$w_sql$s_sql$o_sql";
+  $sql = "SELECT $f_sql FROM $sql_table$w_sql$s_sql$o_sql";
   push(@params, @o_params);
 
   return ($sql, @params);
@@ -476,8 +513,7 @@ sub update
   # my ($self, $table, $data, $where, $opts) = @_;
   my ($self, $table, $data, $where) = @_;
 
-  $self->Croak("update: table is ref")
-    if ref($table);
+  my $sql_table = $self->_table('update', $table);
 
   my (@names, @values);
   if (ref($data) eq 'HASH')
@@ -506,7 +542,7 @@ sub update
   # my ($w_sql, @w_params) = $self->_where($where, $opts);
   my ($w_sql, @w_params) = $self->_where($where);
 
-  return ("UPDATE `$table` SET $d_sql$w_sql", @values, @w_params);
+  return ("UPDATE $sql_table SET $d_sql$w_sql", @values, @w_params);
 }
 
 # ==== DELETE =================================================================
@@ -517,13 +553,12 @@ sub delete
   # my ($self, $table, $where, $opts) = @_;
   my ($self, $table, $where) = @_;
 
-  $self->Croak("delete: table is ref")
-    if ref($table);
+  my $sql_table = $self->_table('delete', $table);
 
   # my ($w_sql, @w_params) = $self->_where($where, $opts);
   my ($w_sql, @w_params) = $self->_where($where);
 
-  return ("DELETE FROM `$table`$w_sql", @w_params);
+  return ("DELETE FROM $sql_table$w_sql", @w_params);
 }
 
 # ==== do =====================================================================
