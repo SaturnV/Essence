@@ -68,6 +68,12 @@ sub _db_op
   return $handle->$op(@_);
 }
 
+sub db_op
+{
+  my $self = shift;
+  return $self->_db_op($self->dbh(), @_);
+}
+
 # ==== Constructors ===========================================================
 
 sub new
@@ -582,7 +588,7 @@ sub do
   }
 
   $self->_debug('query', $sql, \@_, $opts);
-  my $ret = $self->_db_op($self->dbh(), 'do', $sql, $opts, @_) or
+  my $ret = $self->db_op('do', $sql, $opts, @_) or
     die $self->database_error('do');
   $self->_debug('result', $ret);
 
@@ -626,8 +632,7 @@ sub do_select_array
   }
 
   $self->_debug('query', $sql, \@params);
-  $rows = $self->_db_op(
-      $self->dbh(), 'selectall_arrayref', $sql, $opts, @params) or
+  $rows = $self->db_op('selectall_arrayref', $sql, $opts, @params) or
     die $self->database_error('selectall');
   $self->_debug('result_set', $rows);
 
@@ -681,7 +686,7 @@ sub do_select_hash
 
   $self->_debug('query', $sql, \@params);
 
-  my $sth = $self->_db_op($self->dbh(), 'prepare', $sql, $opts) or
+  my $sth = $self->db_op('prepare', $sql, $opts) or
     die $self->database_error('prepare');
   $self->_db_op($sth, 'execute', @params) or
     die $self->database_error('execute');
@@ -712,7 +717,7 @@ sub begin
   if (!$self->in_transaction())
   {
     $self->_debug('transaction', 'BEGIN');
-    $self->_db_op($self->dbh(), 'begin_work') or
+    $self->db_op('begin_work') or
       die $self->database_error('begin');
     $self->in_transaction(1);
   }
@@ -725,7 +730,7 @@ sub commit
   {
     $self->_debug('transaction', 'COMMIT');
     $self->in_transaction(0);
-    $self->_db_op($self->dbh(), 'commit') or
+    $self->db_op('commit') or
       die $self->database_error('commit');
   }
 }
@@ -737,7 +742,7 @@ sub rollback
   {
     $self->_debug('transaction','ROLLBACK');
     $self->in_transaction(0);
-    $self->_db_op($self->dbh(), 'rollback') or
+    $self->db_op('rollback') or
       die $self->database_error('rollback');
   }
 }
@@ -789,7 +794,7 @@ sub disconnect
   my $self = shift;
 
   $self->_debug('connect', "Disconnect.");
-  my $ret = $self->_db_op($self->dbh(), 'disconnect') or
+  my $ret = $self->db_op('disconnect') or
     die $self->database_error('disconnect');
 
   $self->dbh(undef, undef);
