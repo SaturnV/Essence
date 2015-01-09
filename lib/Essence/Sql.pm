@@ -517,11 +517,11 @@ sub select
 sub update
 {
   # my ($self, $table, $data, $where, $opts) = @_;
-  my ($self, $table, $data, $where) = @_;
+  my ($self, $table, $data, $where, $opts, @rest) = @_;
 
   my $sql_table = $self->_table('update', $table);
 
-  my (@names, @values);
+  my ($d_sql, @names, @values);
   if (ref($data) eq 'HASH')
   {
     @names = keys(%{$data});
@@ -537,13 +537,15 @@ sub update
   }
   elsif (defined($data))
   {
-    $self->Croak("update: Bad data");
+    $d_sql = $data;
+    @values = @rest;
   }
 
-  $self->Croak("update: No data")
-    unless @names;
+  $d_sql //= join(', ', map { "`$_` = ?" } @names)
+    if @names;
 
-  my $d_sql = join(', ', map { "`$_` = ?" } @names);
+  $self->Croak("update: No data")
+    unless defined($d_sql);
 
   # my ($w_sql, @w_params) = $self->_where($where, $opts);
   my ($w_sql, @w_params) = $self->_where($where);
