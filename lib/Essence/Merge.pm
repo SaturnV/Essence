@@ -7,14 +7,14 @@ package Essence::Merge;
 
 use Essence::Strict;
 
-use List::MoreUtils qw( none );
+use Essence::Set::Ordered;
 use Carp;
 
 ###### EXPORTS ################################################################
 
 use Exporter qw( import );
 
-our @EXPORT_OK = qw( merge_arrays merge_hashes merge
+our @EXPORT_OK = qw( merge_arrays merge_arrays_keep_order merge_hashes merge
                      merge_deep_default merge_deep_override );
 
 ###### SUBS ###################################################################
@@ -24,44 +24,57 @@ our @EXPORT_OK = qw( merge_arrays merge_hashes merge
 # No need to handle undef
 sub __eq { return (($_[0] eq $_[1]) && (ref($_[0]) eq ref($_[1]))) }
 
+# [c] + [a b c] => [c a b]
 sub merge_arrays
 {
-  my @ret;
+  my $merged = Essence::Set::Ordered->new();
 
-  my (%elems, $undef, $str);
   foreach my $arr (@_)
   {
     croak "merge_arrays() arguments should be ARRAY references"
       unless (ref($arr) eq 'ARRAY');
-
-    foreach my $elem (@{$arr})
-    {
-      if (defined($elem))
-      {
-        if ($elems{$elem})
-        {
-          # my $x = [] ; my $y = "$x" ; $x eq $y
-          if (none { __eq($elem, $_) } @{$elems{$elem}})
-          {
-            push(@{$elems{$elem}}, $elem);
-            push(@ret, $elem);
-          }
-        }
-        else
-        {
-          $elems{$elem} = [$elem];
-          push(@ret, $elem);
-        }
-      }
-      elsif (!$undef)
-      {
-        push(@ret, $elem);
-        $undef = 1;
-      }
-    }
+    $merged->Add(@{$arr});
   }
 
-  return \@ret;
+  return $merged->ElemsRef();
+}
+
+# [c] + [a b c] => [a b c]
+sub merge_arrays_keep_order
+{
+  my $merged = Essence::Set::Ordered->new();
+
+  my ($left, $right, @left, @right);
+  foreach my $arr (@_)
+  {
+    croak "merge_arrays_keep_order() arguments should be ARRAY references"
+      unless (ref($arr) eq 'ARRAY');
+
+    @left = $merged->Elems();
+    $left = $merged;
+
+    @right = @{$arr};
+    $right = Essence::Set::Ordered->new(@right);
+
+    $merged = Essence::Set::Ordered->new();
+
+    while (@left && @right)
+    {
+      if ($right->Contains($left[0]))
+      {
+        $merged->Add($right[0])
+          unless $left->Contains($right[0]);
+        shift(@right);
+      }
+      else
+      {
+        $merged->Add(shift(@left));
+      }
+    }
+    $merged->Add(@left, @right);
+  }
+
+  return $merged->ElemsRef();
 }
 
 sub merge_hashes
