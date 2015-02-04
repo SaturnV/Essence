@@ -18,6 +18,7 @@ our @EXPORT_OK = qw( pick );
 sub pick
 {
   my $from = shift;
+  return map { ($_ => $from->{$_}) } @_ if wantarray;
   return { map { ($_ => $from->{$_}) } @_ };
 }
 
