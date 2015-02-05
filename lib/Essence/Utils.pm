@@ -11,7 +11,7 @@ use Essence::Strict;
 
 use Exporter qw( import );
 
-our @EXPORT_OK = qw( pick );
+our @EXPORT_OK = qw( pick normalize_str );
 
 ###### SUBS ###################################################################
 
@@ -20,6 +20,20 @@ sub pick
   my $from = shift;
   return map { ($_ => $from->{$_}) } @_ if wantarray;
   return { map { ($_ => $from->{$_}) } @_ };
+}
+
+sub normalize_str
+{
+  my $str = $_[0];
+
+  if (defined($str))
+  {
+    $str =~ s/\s+\z//;
+    $str =~ s/^\s+//;
+    $str =~ s/\s+/ /g;
+  }
+
+  return $str;
 }
 
 ###############################################################################
