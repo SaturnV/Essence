@@ -7,11 +7,11 @@ use Essence::Utils qw( pick normalize_str );
 
 is_deeply(
     scalar(pick({ 'a' => 1, 'b' => 2 }, qw( a c ))),
-    { 'a' => 1, 'c' => undef },
+    { 'a' => 1 },
     'pick scalar');
 is_deeply(
     { pick({ 'a' => 1, 'b' => 2 }, qw( a c )) },
-    { 'a' => 1, 'c' => undef },
+    { 'a' => 1 },
     'pick list');
 
 is(

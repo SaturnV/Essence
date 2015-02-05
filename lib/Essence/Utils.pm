@@ -32,8 +32,9 @@ sub normalize_str
 sub pick
 {
   my $from = shift;
-  return map { ($_ => $from->{$_}) } @_ if wantarray;
-  return { map { ($_ => $from->{$_}) } @_ };
+  return map { exists($from->{$_}) ? ($_ => $from->{$_}) : () } @_
+    if wantarray;
+  return { map { exists($from->{$_}) ? ($_ => $from->{$_}) : () } @_ };
 }
 sub picks { return scalar(pick(@_)) }
 
