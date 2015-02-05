@@ -15,13 +15,6 @@ our @EXPORT_OK = qw( pick normalize_str );
 
 ###### SUBS ###################################################################
 
-sub pick
-{
-  my $from = shift;
-  return map { ($_ => $from->{$_}) } @_ if wantarray;
-  return { map { ($_ => $from->{$_}) } @_ };
-}
-
 sub normalize_str
 {
   my $str = $_[0];
@@ -35,6 +28,14 @@ sub normalize_str
 
   return $str;
 }
+
+sub pick
+{
+  my $from = shift;
+  return map { ($_ => $from->{$_}) } @_ if wantarray;
+  return { map { ($_ => $from->{$_}) } @_ };
+}
+sub picks { return scalar(pick(@_)) }
 
 ###############################################################################
 
