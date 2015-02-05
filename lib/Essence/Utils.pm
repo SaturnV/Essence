@@ -11,7 +11,7 @@ use Essence::Strict;
 
 use Exporter qw( import );
 
-our @EXPORT_OK = qw( pick normalize_str );
+our @EXPORT_OK = qw( normalize_str pick picks );
 
 ###### SUBS ###################################################################
 
