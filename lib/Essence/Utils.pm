@@ -11,7 +11,7 @@ use Essence::Strict;
 
 use Exporter qw( import );
 
-our @EXPORT_OK = qw( normalize_str pick picks );
+our @EXPORT_OK = qw( normalize_str camelcase pick picks );
 
 ###### SUBS ###################################################################
 
@@ -27,6 +27,14 @@ sub normalize_str
   }
 
   return $str;
+}
+
+sub camelcase
+{
+  my $str = $_[0];
+  my $prefix = ($str =~ s/^(_*)//) ? $1 : '';
+  $str =~ s/_([a-z])/uc($1)/eg;
+  return $prefix . ucfirst($str);
 }
 
 sub pick
