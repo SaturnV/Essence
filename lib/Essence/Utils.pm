@@ -11,7 +11,7 @@ use Essence::Strict;
 
 use Exporter qw( import );
 
-our @EXPORT_OK = qw( normalize_str camelcase pick picks );
+our @EXPORT_OK = qw( normalize_str camelcase remove_html pick picks );
 
 ###### SUBS ###################################################################
 
@@ -35,6 +35,21 @@ sub camelcase
   my $prefix = ($str =~ s/^(_*)//) ? $1 : '';
   $str =~ s/_([a-z])/uc($1)/eg;
   return $prefix . ucfirst($str);
+}
+
+sub remove_html
+{
+  my $txt = $_[0];
+
+  # Eat html tags + parse selected entities
+  $txt =~ s/(?:<[^>]+>)+/ /g;
+  $txt =~ s/&lt;/</g;
+  $txt =~ s/&gt;/>/g;
+  $txt =~ s/&quot;/"/g;
+  $txt =~ s/&nbsp;/ /g;
+  $txt =~ s/&amp;/&/g;
+
+  return $txt;
 }
 
 sub pick
