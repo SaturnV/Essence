@@ -666,7 +666,7 @@ sub do_select_col
 sub do_select_hash
 {
   my $self = shift;
-  my @ret;
+  my $rows;
 
   my ($sql, @params) =
       (defined($_[0]) && ($_[0] =~ /^select /i)) ?
@@ -693,14 +693,14 @@ sub do_select_hash
   $self->_db_op($sth, 'execute', @params) or
     die $self->database_error('execute');
 
-  my $row;
-  push(@ret, $row) while ($row = $self->_db_op($sth, 'fetchrow_hashref'));
+  $rows = $self->_db_op($sth, 'fetchall_arrayref', {});
   die $self->database_error('fetch')
-    if $self->_db_op($sth, 'err');
+    if (!$rows || $self->_db_op($sth, 'err'));
 
-  $self->_debug('result_set', \@ret);
+  $self->_debug('result_set', $rows);
 
-  return @ret;
+  return @{$rows} if wantarray;
+  return $rows;
 }
 
 # ==== Transactions ===========================================================
