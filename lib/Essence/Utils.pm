@@ -11,7 +11,9 @@ use Essence::Strict;
 
 use Exporter qw( import );
 
-our @EXPORT_OK = qw( normalize_str camelcase remove_html pick picks );
+our @EXPORT_OK = qw( normalize_str camelcase
+    quote_html unquote_html remove_html
+    pick picks );
 
 ###### SUBS ###################################################################
 
@@ -37,19 +39,32 @@ sub camelcase
   return $prefix . ucfirst($str);
 }
 
-sub remove_html
+sub quote_html
 {
   my $txt = $_[0];
+  $txt =~ s/&/&amp;/g;
+  $txt =~ s/</&lt;/g;
+  $txt =~ s/>/&gt;/g;
+  $txt =~ s/"/&quot;/g;
+  return $txt;
+}
 
-  # Eat html tags + parse selected entities
-  $txt =~ s/(?:<[^>]+>)+/ /g;
+sub unquote_html
+{
+  my $txt = $_[0];
   $txt =~ s/&lt;/</g;
   $txt =~ s/&gt;/>/g;
   $txt =~ s/&quot;/"/g;
   $txt =~ s/&nbsp;/ /g;
   $txt =~ s/&amp;/&/g;
-
   return $txt;
+}
+
+sub remove_html
+{
+  my $txt = $_[0];
+  $txt =~ s/(?:<[^>]+>)+/ /g;
+  return unquote_html($txt);
 }
 
 sub pick
