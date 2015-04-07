@@ -11,11 +11,28 @@ use Essence::Strict;
 
 use Exporter qw( import );
 
-our @EXPORT_OK = qw( normalize_str camelcase
+our @EXPORT_OK = qw(
+    xeq xne
+    normalize_str camelcase
     quote_html unquote_html remove_html
     pick picks );
 
 ###### SUBS ###################################################################
+
+sub xeq
+{
+  return defined($_[0]) ?
+      defined($_[1]) && ($_[0] eq $_[1]) && (ref($_[0]) eq ref($_[1])) :
+      !defined($_[1]);
+}
+
+# sub xne { return !xeq(@_) }
+sub xne
+{
+  return defined($_[0]) ?
+      !defined($_[1]) || ($_[0] ne $_[1]) || (ref($_[0]) ne ref($_[1])) :
+      defined($_[1]);
+}
 
 sub normalize_str
 {

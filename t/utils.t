@@ -4,9 +4,45 @@ use Test::More;
 use Essence::Strict;
 
 use Essence::Utils qw(
+    xeq xne
     normalize_str camelcase
     quote_html unquote_html remove_html
     pick picks );
+
+{
+  my $q = {};
+  my @tests = (
+      [ undef, undef, 1, 'undef == undef' ],
+      [ undef, 'a', 0, 'undef != scalar' ],
+      [ 'a', undef, 0, 'scalar != undef' ],
+      [ 'a', 'a', 1, 'scalar == scalar' ],
+      [ 'a', 'b', 0, 'scalar != scalar' ],
+      [ $q, undef, 0, 'ref != undef' ],
+      [ undef, $q, 0, 'undef != ref' ],
+      [ $q, 'a', 0, 'scalar != ref' ],
+      [ 'a', $q, 0, 'ref != scalar' ],
+      [ $q, "$q", 0, 'ref != str' ],
+      [ "$q", $q, 0, 'str != ref' ],
+      [ $q, $q, 1, 'ref == ref' ],
+      [ $q, {}, 0, 'ref != other ref'],
+      [ "$q", "$q", 1, 'str == str']);
+  foreach my $t (@tests)
+  {
+    # ok(xeq($t->[0], $t->[1]) xor $t->[2], "xeq $t->[3]");
+    # ok(xne($t->[0], $t->[1]) xor !$t->[2], "xne $t->[3]");
+
+    if ($t->[2])
+    {
+      ok(xeq($t->[0], $t->[1]), "xeq $t->[3]");
+      ok(!xne($t->[0], $t->[1]), "xne $t->[3]");
+    }
+    else
+    {
+      ok(!xeq($t->[0], $t->[1]), "xeq $t->[3]");
+      ok(xne($t->[0], $t->[1]), "xne $t->[3]");
+    }
+  }
+}
 
 is( normalize_str(' alma  barac '),
     'alma barac',
