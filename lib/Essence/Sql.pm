@@ -33,9 +33,6 @@ our $DB;
 our $DBH;
 our $InTransaction;
 
-# If set database errors will throw this exception
-our $Exception;
-
 our $Debug;
 
 ###### METHODS ################################################################
@@ -47,7 +44,11 @@ our $Debug;
 
 sub database_error
 {
-  return $Exception // $_[0]->fmt_error_msg_nl("Database error.");
+  my ($self, $op) = @_;
+  my $dbh = $self->dbh();
+  my $db_error = ($dbh && $dbh->errstr()) || '???';
+  $op //= '???';
+  return $self->fmt_error_msg_nl("Database error ($op: $db_error).");
 }
 
 sub _debug
