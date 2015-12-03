@@ -231,8 +231,30 @@ sub GetIfLoaded
 {
   my ($self, $key) = @_;
   my $objects = $self->{$kObjects};
-  return unless exists($objects->{$key});
-  return $objects->{$key};
+
+  if (!ref($key))
+  {
+    croak "Can't use undef as cache key"
+      unless defined($key);
+    return unless exists($objects->{$key});
+    return $objects->{$key};
+  }
+  elsif (ref($key) eq 'ARRAY')
+  {
+    foreach (@{$key})
+    {
+      croak "Can't use undef as cache key"
+        unless defined($_);
+      croak "Can't use a " . ref($_) . " reference as a cache key"
+        if ref($_);
+    }
+    return @{$objects}{@{$key}} if wantarray;
+    return [@{$objects}{@{$key}}];
+  }
+  else
+  {
+    croak "Can't use a " . ref($key) . " reference as a cache key";
+  }
 }
 
 sub GetLoadedKeys { return keys(%{$_[0]->{$kObjects}}) }
