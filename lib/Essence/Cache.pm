@@ -120,33 +120,41 @@ sub AddWeak
 
 sub _MissHandler
 {
-  my ($self, $key, $default, @rest) = @_;
+  my ($self, $keys, @defaults) = @_;
 
-  if (ref($default) eq 'CODE')
-  {
-    return $default->($self, $key, @rest);
-  }
-  else
-  {
-    $self->Add($key => $default, @rest);
-    return ($default);
-  }
+  carp "Too many defaults"
+    if (@{$keys} < @defaults);
+
+  my %add;
+  @add{@{$keys}} = @defaults;
+  $self->Add(\%add);
+
+  return @defaults;
 }
 
 sub _Miss
 {
-  my ($self, $key, @default) = @_;
-  return $self->_MissHandler($key, $self->{$kConfig}->{$ckLoader}, @default)
-    if exists($self->{$kConfig}->{$ckLoader});
-  return $self->_MissHandler($key, @default)
-    if @default;
-  return;
+  my $loader = $_[0]->{$kConfig}->{$ckLoader};
+  return $loader->(@_) if (ref($loader) eq 'CODE');
+
+  my ($self, $keys, @rest) = @_;
+  return unless @rest;
+  return $self->_MissHandler($keys, @rest)
+    unless (ref($rest[0]) eq 'CODE');
+
+  $loader = shift(@rest);
+  return $loader->($self, $keys, @rest);
 }
 
 sub Get
 {
-  my ($self, $key, @default) = @_;
+  my ($self, $key, @rest) = @_;
   my @ret;
+
+  croak "Can't use undef as cache key"
+    unless defined($key);
+  croak "Can't use a " . ref($key) . " reference as a cache key"
+    if ref($key);
 
   my $objects = $self->{$kObjects};
   if (exists($objects->{$key}))
@@ -155,11 +163,60 @@ sub Get
   }
   else
   {
-    @ret = $self->_Miss($key, @default);
+    @ret = $self->_Miss([$key], @rest);
   }
 
   return @ret if wantarray;
   return $ret[0];
+}
+
+# ---- GetMany ----------------------------------------------------------------
+
+sub GetMany
+{
+  my ($self, $keys, @rest) = @_;
+  my @ret;
+
+  croak "\$keys should be an arrayref"
+    unless (ref($keys) eq 'ARRAY');
+
+  if (!$#{$keys})
+  {
+    @ret = $self->Get($keys->[0], @rest);
+  }
+  elsif (@{$keys})
+  {
+    my @miss_keys;
+    my $objects = $self->{$kObjects};
+    # @misses = grep { !exists($objects->{$_}) } @{$keys};
+    foreach (@{$keys})
+    {
+      croak "Can't use undef as cache key"
+        unless defined($_);
+      croak "Can't use a " . ref($_) . " reference as a cache key"
+        if ref($_);
+      push(@miss_keys, $_) unless exists($objects->{$_});
+    }
+
+    if (@miss_keys)
+    {
+      my %misses;
+      @misses{@miss_keys} = $self->_Miss([@miss_keys], @rest);
+
+      # Reload in case _MissHandler changed it
+      $objects = $self->{$kObjects};
+
+      @ret = map { exists($misses{$_}) ? $misses{$_} : $objects->{$_} }
+          @{$keys};
+    }
+    else
+    {
+      @ret = @{$objects}{@{$keys}};
+    }
+  }
+
+  return @ret if wantarray;
+  return \@ret;
 }
 
 # ---- Misc readers -----------------------------------------------------------
@@ -219,7 +276,6 @@ sub SetMetadata
   {
     croak "SetMetadata('key' => \$metadata_hashref)" if $#_;
     $self->{$kMetadata}->{$key} = $_[0];
-    return $self;
   }
   else
   {
@@ -229,8 +285,10 @@ sub SetMetadata
     croak "Can't use undef as a metadata name" unless defined($name);
     croak "SetMetadata('key', 'name' => \$value)" if @_;
 
-    return $self->{$kMetadata}->{$key}->{$name} = $value;
+    $self->{$kMetadata}->{$key}->{$name} = $value;
   }
+
+  return $self;
 }
 
 sub RemoveMetadata
@@ -300,7 +358,6 @@ sub SetConfig
   {
     croak "SetConfig(\$config_hashref)" if $#_;
     $self->{$kConfig} = $_[0];
-    return $self;
   }
   else
   {
@@ -310,8 +367,10 @@ sub SetConfig
     croak "Can't use undef as a config name" unless defined($name);
     croak "SetConfig('name' => \$value)" if @_;
 
-    return $self->{$kConfig}->{$name} = $value;
+    $self->{$kConfig}->{$name} = $value;
   }
+
+  return $self;
 }
 
 sub RemoveConfig

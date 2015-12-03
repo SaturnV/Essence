@@ -46,22 +46,19 @@ is_deeply(
     [$cache->Get('f',
          sub
          {
+           my ($c, $ks, @rest) = @_;
            ++$seq;
-           $_[0]->Add($_[1] => 'z');
+           is_deeply($ks, ['f'], 'miss-callback fz keys');
+           is_deeply([@rest], ['arg1', 'arg2'], 'miss-callback fz rest');
+           $c->Add($ks->[0] => 'z');
            return 'z'
-         })],
+         }, 'arg1', 'arg2')],
     ['z'],
     'miss-callback fz');
 is($seq, 3, 'miss-callback fz seq');
 
 is_deeply(
-    [$cache->Get('f',
-         sub
-         {
-           ++$seq;
-           $_[0]->Add($_[1] => 'z');
-           return 'Z'
-         })],
+    [$cache->Get('f', sub { ++$seq ; return 'Z' })],
     ['z'],
     'miss-callback fz hit');
 is($seq, 3, 'miss-callback fz hit seq');
@@ -105,9 +102,9 @@ $seq = 0;
 $cache->SetConfig(':loader' =>
     sub
     {
-      my ($c, $k, @d) = @_;
-      my $v = @d ? $d[0] : $k;
-      $c->Add($k => $v);
+      my ($c, $ks, @d) = @_;
+      my $v = @d ? $d[0] : $ks->[0];
+      $c->Add($ks->[0] => $v);
       ++$seq;
       return $v;
     });
@@ -124,6 +121,76 @@ is($seq, 2, 'loader b get seq');
 
 # TODO Meta
 # TODO Config
+
+# ---- GetMany ----------------------------------------------------------------
+
+$cache = Essence::Cache->new(
+    'a' => 'alma',
+    'b' => 'barac');
+is_deeply([$cache->Get('a')], ['alma'], 'initialize');
+is_deeply(
+    [$cache->GetMany(['a', 'b'])],
+    ['alma', 'barac'],
+    'GetMany all hit');
+
+is_deeply(
+    [$cache->GetMany(['a', 'c', 'd'])],
+    ['alma', undef, undef],
+    'GetMany miss nodef');
+is_deeply([$cache->Get('c')], [], 'GetMany miss nodef get');
+
+is_deeply(
+    [$cache->GetMany(['a', 'c', 'd'], 'citrom', 'datolya')],
+    ['alma', 'citrom', 'datolya'],
+    'GetMany miss defaults');
+is_deeply([$cache->Get('c')], ['citrom'], 'GetMany miss defaults get');
+
+$seq = 0;
+is_deeply(
+    [$cache->GetMany(['a', 'u', 'v'],
+         sub
+         {
+           my ($c, $ks, @rest) = @_;
+           ++$seq;
+
+           is_deeply($ks, ['u', 'v'], 'GetMany miss cb ks');
+           is_deeply([@rest], ['hello'], 'GetMany miss cb rest');
+
+           my %add;
+           my @vs = map { uc($_) } @{$ks};
+           @add{@{$ks}} = @vs;
+           $c->Add(\%add);
+
+           return @vs;
+         }, 'hello')],
+    ['alma', 'U', 'V'],
+    'GetMany miss cb');
+is_deeply([$cache->Get('u')], ['U'], 'GetMany miss cb get');
+is($seq, 1, 'GetMany miss cb seq');
+
+$cache->SetConfig(':loader' =>
+    sub
+    {
+      my ($c, $ks, @rest) = @_;
+      ++$seq;
+
+      is_deeply($ks, ['p', 'q'], 'GetMany miss loader ks');
+      is_deeply([@rest], ['szia'], 'GetMany miss loader rest');
+
+      my %add;
+      my @vs = map { uc($_) } @{$ks};
+      @add{@{$ks}} = @vs;
+      $c->Add(\%add);
+
+      return @vs;
+    });
+
+is_deeply(
+    [$cache->GetMany(['a', 'p', 'q'], 'szia')],
+    ['alma', 'P', 'Q'],
+    'GetMany miss loader');
+is_deeply([$cache->Get('p')], ['P'], 'GetMany miss loader get');
+is($seq, 2, 'GetMany miss loader seq');
 
 # =============================================================================
 
